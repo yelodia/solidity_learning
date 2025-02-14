@@ -1,0 +1,46 @@
+{
+    "name": "erc20",
+    "version": "1.0.0",
+    "description": "Set of generic ERC20 contracts",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kupermind/erc20.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/kupermind/erc20/issues"
+    },
+    "homepage": "https://github.com/kupermind/erc20#readme",
+    "devDependencies": {
+        "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+        "@nomicfoundation/hardhat-ethers": "^3.0.5",
+        "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
+        "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+        "@nomiclabs/hardhat-ethers": "^2.2.3",
+        "@nomiclabs/hardhat-etherscan": "^3.1.7",
+        "@typechain/ethers-v5": "^11.1.2",
+        "@typechain/hardhat": "^9.1.0",
+        "@types/mocha": "^10.0.6",
+        "chai": "^4.3.7",
+        "eslint": "^8.57.0",
+        "ethers": "^5.7.2",
+        "hardhat": "^2.22.6",
+        "hardhat-contract-sizer": "^2.10.0",
+        "hardhat-deploy": "^0.12.1",
+        "hardhat-deploy-ethers": "^0.4.1",
+        "hardhat-gas-reporter": "^1.0.10",
+        "hardhat-tracer": "^2.8.1",
+        "solhint": "^4.1.1",
+        "solidity-coverage": "^0.8.10"
+    },
+    "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
+    "dependencies": {
+        "dotenv": "^16.4.7"
+    }
+}
