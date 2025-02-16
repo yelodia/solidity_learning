@@ -15,7 +15,7 @@ contract NativeBankOpt is INativeBank {
     mapping(uint8 index => address holder) public stakeHolders;
     uint256 public accumulator; 
     mapping(address client => uint256 balance) public balanceOf;
-    // смена типа c uin8 на uint256 должна экономить газ при депозите, но почему-то экономит при деплое ~ на 16500
+    // смена типа c uin8 на uint256 должна экономить газ при снятии, но почему-то еще экономит при деплое ~ на 16500
     // не сбрасываем лок в 0. Увеличивает стоимость деплоя, но сильно экономит газ на снятии
     uint256 private lock = 1;
 
