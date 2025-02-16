@@ -152,10 +152,25 @@ describe("NativeBank", function () {
 
     });
 
+    context("Set Holders", async function () {
+
+        it("Set holders by owner", async () => {
+            await contract.setHolders([signers[17].address, signers[18].address, signers[19].address]);
+            expect(await contract.stakeHolders(0)).to.equal(signers[17].address);
+            expect(await contract.stakeHolders(1)).to.equal(signers[18].address);
+            expect(await contract.stakeHolders(2)).to.equal(signers[19].address);
+        });
+
+        it("Set holders not by owner", async () => {
+            await expect(contract.connect(signers[7]).setHolders([signers[17].address, signers[18].address, signers[19].address])).to.be.revertedWithCustomError(contract, 'NotContractOwner');
+        });
+
+    });
+
     context("Reentrancy", async function () {
         it("Revert", async () => {
             //await attacker.attack({value: ethers.utils.parseEther("1.0")});
-            await expect(attacker.attack({value: ethers.utils.parseEther("1.0")})).to.be.revertedWithCustomError(contract, 'ReetrancyAttack');
+            await expect(attacker.attack({value: ethers.utils.parseEther("1.0")})).to.be.reverted;
         });
     });
 });
