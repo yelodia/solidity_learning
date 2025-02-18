@@ -1,5 +1,5 @@
 /*global describe, context, beforeEach, it*/
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const { expect } = require("chai");
 
 describe("NativeBankOpt", function () {
@@ -7,6 +7,15 @@ describe("NativeBankOpt", function () {
     let deployer;
     let contract;
     let attacker;
+    let snapshotId;
+
+    before(async function () {
+        snapshotId = await network.provider.send('evm_snapshot');
+    });
+
+    after(async () => {
+        await network.provider.send("evm_revert", [snapshotId]);
+    });
 
     beforeEach(async function () {
         // Accounts
