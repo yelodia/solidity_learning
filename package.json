@@ -1,22 +1,18 @@
 {
-    "name": "erc20",
+    "name": "sol_learn",
     "version": "1.0.0",
-    "description": "Set of generic ERC20 contracts",
+    "description": "Solidity learning",
     "main": "index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/kupermind/erc20.git"
+        "url": "git+https://github.com/yelodia/solidity_learning.git"
     },
     "keywords": [],
     "author": "",
     "license": "ISC",
-    "bugs": {
-        "url": "https://github.com/kupermind/erc20/issues"
-    },
-    "homepage": "https://github.com/kupermind/erc20#readme",
     "devDependencies": {
         "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
         "@nomicfoundation/hardhat-ethers": "^3.0.5",
