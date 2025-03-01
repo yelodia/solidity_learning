@@ -1,6 +1,7 @@
 /*global process*/
 
 require("hardhat-contract-sizer");
+require('hardhat-storage-layout');
 require("hardhat-deploy");
 require("hardhat-deploy-ethers");
 require("hardhat-gas-reporter");
@@ -20,8 +21,8 @@ const accounts = {
     mnemonic: TEST_MNEMONIC,
     path: "m/44'/60'/0'/0",
     initialIndex: 0,
-    count: 20,
-    accountsBalance: "100000000000000000000000000"
+    count: 100,
+    accountsBalance: "10000000000000000000000"
 };
 
 module.exports = {
@@ -30,7 +31,8 @@ module.exports = {
             url: "http://localhost:8545",
         },
         hardhat: {
-            allowUnlimitedContractSize: true
+            allowUnlimitedContractSize: true,
+            accounts: accounts,
         },
         sepolia: {
             url: "https://sepolia.infura.io/v3/" + INFURA_API_KEY_SEPOLIA,
@@ -68,6 +70,6 @@ module.exports = {
         ]
     },
     gasReporter: {
-        enabled: true
+        enabled: false
     }
 };

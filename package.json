@@ -31,12 +31,17 @@
         "hardhat-deploy": "^0.12.1",
         "hardhat-deploy-ethers": "^0.4.1",
         "hardhat-gas-reporter": "^1.0.10",
+        "hardhat-storage-layout": "^0.1.7",
         "hardhat-tracer": "^2.8.1",
         "solhint": "^4.1.1",
         "solidity-coverage": "^0.8.10"
     },
     "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
     "dependencies": {
-        "dotenv": "^16.4.7"
+        "@openzeppelin/contracts": "^5.2.0",
+        "@openzeppelin/contracts-upgradeable": "^5.2.0",
+        "dotenv": "^16.4.7",
+        "keccak256": "^1.0.6",
+        "merkletreejs": "^0.4.1"
     }
 }
