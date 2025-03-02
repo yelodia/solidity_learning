@@ -3,29 +3,20 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-contract Permissions {
+abstract contract PermissionsInitializeable {
     using MessageHashUtils for bytes32;
-    string private VERSION = "1.0.0";
-    string private NAME = "MimimiCat";
-    uint256 internal immutable INITIAL_CHAIN_ID;
-    bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
+    string private VERSION;
+    string private NAME;
     mapping(address => uint256) public nonces;
 
-    constructor(string memory _name, string memory _version) {
-        INITIAL_CHAIN_ID = block.chainid;
-        INITIAL_DOMAIN_SEPARATOR = _computeDomainSeparator();
+    function permissionsInit(string memory _name, string memory _version) internal {
         VERSION = _version;
         NAME = _name;
     }
 
     error InvalidSignature();
 
-
     function domainSeparator() public view returns (bytes32) {
-        return block.chainid == INITIAL_CHAIN_ID ? INITIAL_DOMAIN_SEPARATOR : _computeDomainSeparator();
-    }
-
-    function _computeDomainSeparator() internal view returns (bytes32) {
         return
             keccak256(
                 abi.encode(
@@ -38,19 +29,17 @@ contract Permissions {
             );
     }
 
-    // здесь используется персональную подпись, так как ее формирует бекенд и отдает пользовтаелю. Подписан domainSeparator и урл коллекции (чтобы пользователь не провел транзакцию с другим урлом)
-    // nonce не используется, так как дочерний конракт не даст повторно закрыть лотерею
+    function version() public view returns(string memory) {
+        return VERSION;
+    }
+
     function _validateClose(string calldata _uri, address _signer, uint8 v, bytes32 r, bytes32 s) internal view {
         bytes32 data = keccak256(abi.encodePacked(domainSeparator(), _uri));
-        //раньше здесь была цельная сигнатура и код --address recovered = data.toEthSignedMessageHash().recover(_signature);-- 
-        // recover - метод из библиотеки ECSDA, который сам делает сплит сигнатуры. Это увеличивает стоимость газа на 1000, поэтому везде используем готовые сплиты v, r, s
-        address recoveredAddress = ecrecover(data.toEthSignedMessageHash(), v, r, s); // через toEthSignedMessageHash дописываем к хешу сообщение Ethereum signed message
+        address recoveredAddress = ecrecover(data.toEthSignedMessageHash(), v, r, s); 
         require(recoveredAddress != address(0) && recoveredAddress == _signer, InvalidSignature());
     }
 
-    // в остальных функциях используем стандарт EIP721, так как эти данные подписывают сами пользователи
-
-    function _validatePermit( address _owner, address _spender, uint256 _tokenId, uint8 v, bytes32 r, bytes32 s) internal { // а я решила, что мне не нужен deadline. Пусть делают свои аппрувы, когда хотят
+    function _validatePermit( address _owner, address _spender, uint256 _tokenId, uint8 v, bytes32 r, bytes32 s) internal { 
         unchecked {
             address recoveredAddress = ecrecover(
                 keccak256(

@@ -4,18 +4,18 @@ pragma solidity 0.8.28;
 import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import { Permissions } from "./permissions.sol";
-import { RoleControlUp } from "./roleControlUpgradeable.sol";
+import { PermissionsInitializeable } from "./permissionsInitializeable.sol";
+import { RoleControlInitializeable } from "./roleControlInitializeable.sol";
 
-
-contract MimimiCatUp is Permissions, ERC721Upgradeable, RoleControlUp {
+// общий код для обновляемого и клонируемого контракта перенесла сюда
+abstract contract LotteryInitializeable is PermissionsInitializeable, ERC721Upgradeable, RoleControlInitializeable {
     using Strings for uint256;
     uint8 private constant STATE_PAUSE = 1; 
     uint8 private constant STATE_OPEN = 2; 
     uint8 private constant STATE_CLOSE = 3; 
-    uint256 public constant REWARD_FOR_CLOSE=1e18*2; 
+    uint256 public constant REWARD_FOR_CLOSE=1e18*2;
 
-    uint8 public state = STATE_PAUSE;
+    uint8 public state;
     uint32 public immutable maxSupply; 
     uint32 private whiteListSupply; 
     uint32 private tokenIdCounter; 
@@ -39,24 +39,27 @@ contract MimimiCatUp is Permissions, ERC721Upgradeable, RoleControlUp {
 
     event SetState(uint8 state);
 
-    constructor(uint32 _maxSupply) Permissions() payable {
+    // в конструкторе осталось только immutable значение
+    constructor(uint32 _maxSupply) {
         maxSupply = _maxSupply;
     }
 
-    function initialize(uint32 _whiteListSupply, string memory _uri, uint256 _mintPrice, address signer) public initializer {
-        __ERC721_init("MimimiCat", "MCT");
+    // остальное переехало в initialize
+    function lotteryInit(uint32 _whiteListSupply, string memory _uri, uint256 _mintPrice, address _signer, string memory _name, string memory _symbol, string memory _version, address _owner) internal {
+        __ERC721_init(_name, _symbol);
         whiteListSupply = _whiteListSupply;
         baseURI = _uri;
         mintPrice = _mintPrice;
-        roleControlInit(signer);
+        roleControlInit(_signer, _owner);
+        permissionsInit(_name, _version);
+        state = STATE_PAUSE;
     }
 
-    function supportsInterface(bytes4 interfaceId) public view override(RoleControlUp, ERC721Upgradeable) returns (bool) {
-        return ERC721Upgradeable.supportsInterface(interfaceId) || RoleControlUp.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view override(RoleControlInitializeable, ERC721Upgradeable) returns (bool) {
+        return ERC721Upgradeable.supportsInterface(interfaceId) || RoleControlInitializeable.supportsInterface(interfaceId);
     }
 
-
-    function tokenURI(uint256 _tokenId) public view override(ERC721Upgradeable) returns (string memory) {
+    function tokenURI(uint256 _tokenId) public virtual view override(ERC721Upgradeable) returns (string memory) {
         _requireOwned(_tokenId);
         if (state == STATE_CLOSE) {
             return bytes(baseURI).length > 0 ? string.concat(baseURI, _tokenId.toString()) : "";
@@ -65,34 +68,34 @@ contract MimimiCatUp is Permissions, ERC721Upgradeable, RoleControlUp {
         return baseURI; 
     }
 
-    function mint() external payable {
+    function mint() external virtual payable {
         _mintMCT(msg.sender);
     }
 
 
-    function signedMint(address _owner, uint8 v, bytes32 r, bytes32 s) external payable {
+    function signedMint(address _owner, uint8 v, bytes32 r, bytes32 s) external virtual payable {
         _validateMint(_owner, v, r, s); 
         _mintMCT(_owner);
 
     }
 
-    function freeMint(bytes32[] calldata _proof) external {
+    function freeMint(bytes32[] calldata _proof) external virtual {
         _freeMintMCT(msg.sender, _proof);
     }
 
 
-    function signedFreeMint(address _owner, bytes32[] calldata _proof, uint8 v, bytes32 r, bytes32 s) external {
+    function signedFreeMint(address _owner, bytes32[] calldata _proof, uint8 v, bytes32 r, bytes32 s) external virtual {
         _validateFreeMint(_owner, _proof, v, r, s); 
         _freeMintMCT(_owner, _proof);
     }
 
-    function _mintMCT(address _account) internal mintEnabled(maxSupply - whiteListSupply) {
+    function _mintMCT(address _account) internal virtual mintEnabled(maxSupply - whiteListSupply) {
         require(!blackList[_account], MCTAdddresInBlackList(_account)); 
         require(msg.value == mintPrice, MCTInvalidEthers(_account, mintPrice, msg.value)); 
         _mint(_account, tokenIdCounter);
     }
 
-    function _freeMintMCT(address _account, bytes32[] calldata _proof) internal mintEnabled(maxSupply) {
+    function _freeMintMCT(address _account, bytes32[] calldata _proof) internal virtual mintEnabled(maxSupply) {
         require(inWhiteList(_account, _proof), MCTAdddresNotInWiteList(_account)); 
         require(!whiteListMinted[_account], MCTAlreadyHasFreeMint(_account)); 
         
@@ -103,7 +106,7 @@ contract MimimiCatUp is Permissions, ERC721Upgradeable, RoleControlUp {
         }
     }
 
-    function inWhiteList(address _addr, bytes32[] calldata _proof) public view returns (bool) {
+    function inWhiteList(address _addr, bytes32[] calldata _proof) public virtual view returns (bool) {
         bytes32 leaf = keccak256(abi.encodePacked(_addr));
         return MerkleProof.verify(_proof, whiteList, leaf);
     }
@@ -115,16 +118,16 @@ contract MimimiCatUp is Permissions, ERC721Upgradeable, RoleControlUp {
 
     
 
-    function setToBlackList(address _account, bool _value) external onlyRole(ROLE_MODERATOR) { 
+    function setToBlackList(address _account, bool _value) external virtual onlyRole(ROLE_MODERATOR) { 
         blackList[_account] = _value;
     }
 
-    function setWhiteList(bytes32 _whiteList) external onlyMultisigner {
+    function setWhiteList(bytes32 _whiteList) external virtual onlyMultisigner {
         whiteList = _whiteList;
     }
 
 
-    function setState(uint8 _state) external onlyRole(ROLE_MODERATOR) {
+    function setState(uint8 _state) external virtual onlyRole(ROLE_MODERATOR) {
         require(state != STATE_CLOSE && _state != STATE_CLOSE, MCTInvalidTransition());
         
         state = _state;
@@ -132,12 +135,12 @@ contract MimimiCatUp is Permissions, ERC721Upgradeable, RoleControlUp {
     }
  
 
-    function setMintPrice(uint256 _amount) external onlyRole(ROLE_STAKEHOLDER) {
+    function setMintPrice(uint256 _amount) external virtual onlyRole(ROLE_STAKEHOLDER) {
         mintPrice = _amount;
     }
 
 
-    function withdraw(uint256 _amount) external onlyRole(ROLE_STAKEHOLDER) {
+    function withdraw(uint256 _amount) external virtual onlyRole(ROLE_STAKEHOLDER) {
         require(state == STATE_CLOSE, MCTMintIsNotClosed());
 
         (bool success, ) = msg.sender.call{value: _amount}("");
@@ -147,11 +150,11 @@ contract MimimiCatUp is Permissions, ERC721Upgradeable, RoleControlUp {
     }
     
 
-    function close(string memory _uri) external onlyMultisigner {
+    function close(string memory _uri) external virtual onlyMultisigner {
         _close(_uri);
     }
     
-    function signedClose(string calldata _uri, uint8 v, bytes32 r, bytes32 s) external {
+    function signedClose(string calldata _uri, uint8 v, bytes32 r, bytes32 s) external virtual {
         _validateClose(_uri, owner(), v, r, s);
         _close(_uri);
         (bool success, ) = msg.sender.call{value: REWARD_FOR_CLOSE}("");
@@ -161,7 +164,7 @@ contract MimimiCatUp is Permissions, ERC721Upgradeable, RoleControlUp {
     }
 
 
-    function _close(string memory _uri) internal {
+    function _close(string memory _uri) internal virtual {
         require(state != STATE_CLOSE, MCTAlreadyClosed());
 
         state = STATE_CLOSE;

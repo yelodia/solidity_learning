@@ -38,7 +38,7 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
     uint8 private constant STATE_CLOSE = 3; // минт закрыт, метадата открыта
     uint256 public constant REWARD_FOR_CLOSE=1e18*2; // награда победителю в конкурсе на лучшую коллекцию
 
-    uint8 public state = STATE_PAUSE;
+    uint8 public state;
     uint32 public immutable maxSupply; // общее количество токенов
     uint32 private whiteListSupply; // пул свободных токенов для вайтлиста, уменьшается при бесплатном минте
     uint32 private tokenIdCounter; // текущий заминченный токен
@@ -62,11 +62,12 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
 
     event SetState(uint8 state);
 
-    constructor(uint32 _maxSupply, uint32 _whiteListSupply, string memory _uri, uint256 _mintPrice, address signer) RoleControl(signer) Permissions() ERC721("MimimiCat", "MCT") payable {
+    constructor(uint32 _maxSupply, uint32 _whiteListSupply, string memory _uri, uint256 _mintPrice, address signer) RoleControl(signer) Permissions("MimimiCat", "1.0.0") ERC721("MimimiCat", "MCT") payable {
         maxSupply = _maxSupply;
         whiteListSupply = _whiteListSupply;
         baseURI = _uri;
         mintPrice = _mintPrice;
+        state = STATE_PAUSE;
     }
 
     function supportsInterface(bytes4 interfaceId) public view override(RoleControl, ERC721) returns (bool) {
