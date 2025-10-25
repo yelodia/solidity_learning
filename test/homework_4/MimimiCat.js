@@ -1,8 +1,11 @@
 /*global describe, context, beforeEach, it*/
-const { ethers, network } = require("hardhat");
-const { expect } = require("chai");
-const {MerkleTree} = require('merkletreejs');
-const keccak256 = require('keccak256');
+import { expect } from "chai";
+import { network } from "hardhat";
+
+const { ethers } = await network.connect();
+
+import { MerkleTree } from 'merkletreejs';
+import keccak256 from 'keccak256';
 
 describe("MimimmiCat", function () {
     let signers;
@@ -12,7 +15,7 @@ describe("MimimmiCat", function () {
     let snapshotId;
 
     let abiFunc = ["function close(string _uri)", "function setWhiteList(bytes32 _whiteList)"];
-    let iface = new ethers.utils.Interface(abiFunc);
+    let iface = new ethers.Interface(abiFunc);
     let closeAbi;
     let whitelistAbi;
     let merkleTree;
@@ -47,7 +50,7 @@ describe("MimimmiCat", function () {
     async function SharedMintNotOpened() {
         it("cannot mint", async () => {
             await expect(contract.connect(signers[22]).mint({
-                value: ethers.utils.parseEther("0.05"),
+                value: ethers.parseEther("0.05"),
             })).to.be.revertedWithCustomError(contract, 'MCTMintIsNotOpened');
         });
         it("cannot free mint", async () => {
@@ -64,7 +67,7 @@ describe("MimimmiCat", function () {
             name: "MimimiCat",
             version: '1.0.0',
             chainId: 31337,
-            verifyingContract: contract.address
+            verifyingContract: contract.target
         }
     }
 
@@ -80,8 +83,8 @@ describe("MimimmiCat", function () {
             owner: signer.address,
             nonce: nonce,
         };
-        const signature = await signer._signTypedData(_domain(), types, message);
-	    return ethers.utils.splitSignature(signature);
+        const signature = await signer.signTypedData(_domain(), types, message);
+	    return ethers.Signature.from(signature);
     }
 
     async function _signForFreeMint(signer) {
@@ -98,8 +101,8 @@ describe("MimimmiCat", function () {
             proof: _proof(signer),
             nonce: nonce,
           };
-        const signature = await signer._signTypedData(_domain(), types, message);
-	    return ethers.utils.splitSignature(signature);
+        const signature = await signer.signTypedData(_domain(), types, message);
+	    return ethers.Signature.from(signature);
     }
 
     async function _signForPermit(signer, spender, tokenId) {
@@ -118,20 +121,23 @@ describe("MimimmiCat", function () {
             tokenId: tokenId,
             nonce: nonce,
           };
-        const signature = await signer._signTypedData(_domain(), types, message);
-	    return ethers.utils.splitSignature(signature);
+        const signature = await signer.signTypedData(_domain(), types, message);
+	    return ethers.Signature.from(signature);
     }
 
     async function _signForClose() {
         let domain = await contract.domainSeparator();
-        let messageHash = ethers.utils.solidityKeccak256(['bytes32', 'string'], [domain, 'ipfs://awesome_collection/']);
-        let sign = await deployer.signMessage(ethers.utils.arrayify(messageHash));
-	    return ethers.utils.splitSignature(sign);
+        let messageHash = ethers.solidityPackedKeccak256(
+            ['bytes32', 'string'], 
+            [domain, 'ipfs://awesome_collection/']
+        );
+        let sign = await deployer.signMessage(ethers.getBytes(messageHash));
+        return ethers.Signature.from(sign);
     }
 
     // start tests
     before(async function () {
-        snapshotId = await network.provider.send('evm_snapshot');
+        snapshotId = await ethers.provider.send('evm_snapshot');
         signers = await ethers.getSigners();
         closeAbi = iface.encodeFunctionData('close', ["ipfs://visible_metadata/"]);
 
@@ -142,7 +148,7 @@ describe("MimimmiCat", function () {
     });
 
     after(async () => {
-        await network.provider.send("evm_revert", [snapshotId]);
+        await ethers.provider.send("evm_revert", [snapshotId]);
     });
 
     beforeEach(async function () {
@@ -152,18 +158,16 @@ describe("MimimmiCat", function () {
         // Contracts
         const MultiSigWallet = await ethers.getContractFactory("MultiSigWallet");
         multiWallet = await MultiSigWallet.deploy(signers.slice(0,11).map(function(em){return em.address}), 5);
-        await multiWallet.deployed();
         
         const MimimiCat = await ethers.getContractFactory("MimimiCat");
-        contract = await MimimiCat.deploy(15, 5, "ipfs://hidden_metadata", ethers.utils.parseEther("0.05"), multiWallet.address);
-        await contract.deployed();
+        contract = await MimimiCat.deploy(15, 5, "ipfs://hidden_metadata", ethers.parseEther("0.05"), multiWallet.target);
 
         // settings
         await contract.addStakeHolders([signers[0].address, signers[1].address]);
         await contract.addModerators([signers[8].address, signers[9].address, signers[10].address]);
 
-        await multiWallet.submitTransaction(contract.address, 0, closeAbi);
-        await multiWallet.submitTransaction(contract.address, 0, whitelistAbi);
+        await multiWallet.submitTransaction(contract.target, 0, closeAbi);
+        await multiWallet.submitTransaction(contract.target, 0, whitelistAbi);
 
         for(var i=1; i<5; i++) {
             await multiWallet.connect(signers[i]).confirmTransaction(0);
@@ -175,7 +179,7 @@ describe("MimimmiCat", function () {
         it("Correctly constructs nft", async () => {
             expect(await contract.owner()).to.equal(deployer.address);
             expect(await contract.maxSupply()).to.equal(15);
-            expect(await contract.mintPrice()).to.equal(ethers.utils.parseEther("0.05"));
+            expect(await contract.mintPrice()).to.equal(ethers.parseEther("0.05"));
             expect(await contract.name()).to.equal("MimimiCat");
             expect(await contract.state()).to.equal(1);
         });
@@ -183,12 +187,12 @@ describe("MimimmiCat", function () {
 
     context("Set mint price", async function () {
         it("non-stakeholder cannot set mint price", async () => {
-            await expect(contract.connect(signers[5]).setMintPrice(ethers.utils.parseEther("0.1"))).to.be.revertedWithCustomError(contract, 'AccessControlUnauthorizedAccount');
+            await expect(contract.connect(signers[5]).setMintPrice(ethers.parseEther("0.1"))).to.be.revertedWithCustomError(contract, 'AccessControlUnauthorizedAccount');
         });
 
         it("stakeholder can set mint price", async () => {
-            await contract.connect(signers[1]).setMintPrice(ethers.utils.parseEther("0.1"));
-            expect(await contract.mintPrice()).to.equal(ethers.utils.parseEther("0.1"));
+            await contract.connect(signers[1]).setMintPrice(ethers.parseEther("0.1"));
+            expect(await contract.mintPrice()).to.equal(ethers.parseEther("0.1"));
         });
     });
 
@@ -209,7 +213,7 @@ describe("MimimmiCat", function () {
         });
 
         it("multiwallet cannot set whitelist if insufficient confirmations", async () => {
-            await expect(multiWallet.executeTransaction(1)).to.be.reverted;
+            await expect(multiWallet.executeTransaction(1)).to.be.revert(ethers);
         });
 
         it("multiwallet can set whitelist", async () => {
@@ -227,7 +231,7 @@ describe("MimimmiCat", function () {
         });
 
         it("cannot close if insufficient confirmations", async () => {
-            await expect(multiWallet.executeTransaction(0)).to.be.reverted;
+            await expect(multiWallet.executeTransaction(0)).to.be.revert(ethers);
         });
 
         it("multiwallet can close", async () => {
@@ -239,22 +243,22 @@ describe("MimimmiCat", function () {
     context("signedClose", async function () {
         beforeEach(async function () {
             await contract.connect(signers[8]).setState(2);
-            await contract.setMintPrice(ethers.utils.parseEther("2.5"));
+            await contract.setMintPrice(ethers.parseEther("2.5"));
             await contract.connect(signers[90]).mint({
-                value: ethers.utils.parseEther("2.5"),
+                value: ethers.parseEther("2.5"),
             });
         });
 
         it("close with invalid url", async () => {
-            sign = await _signForClose();
+            let sign = await _signForClose();
             await expect(contract.connect(signers[60]).signedClose("ipfs://another_collection/", sign.v, sign.r, sign.s)).to.be.revertedWithCustomError(contract, 'InvalidSignature');
         });
 
         it("close with valid url", async () => {
-            sign = await _signForClose();
+            let sign = await _signForClose();
             await contract.connect(signers[60]).signedClose("ipfs://awesome_collection/", sign.v, sign.r, sign.s);
             expect( await contract.tokenURI(1)).to.equal('ipfs://awesome_collection/1');
-            expect(await ethers.provider.getBalance(contract.address)).to.equal(ethers.utils.parseEther("0.5"));
+            expect(await ethers.provider.getBalance(contract.target)).to.equal(ethers.parseEther("0.5"));
             // try to reply
             await expect(contract.connect(signers[60]).signedClose("ipfs://awesome_collection/", sign.v, sign.r, sign.s)).to.be.revertedWithCustomError(contract, 'MCTAlreadyClosed');
         });
@@ -262,7 +266,7 @@ describe("MimimmiCat", function () {
 
     context("Withdraw", async function () {
         it("non-stakeholder cannot withdraw", async () => {
-            await expect(contract.connect(signers[9]).withdraw(ethers.utils.parseEther("0.05"))).to.be.revertedWithCustomError(contract, 'AccessControlUnauthorizedAccount');
+            await expect(contract.connect(signers[9]).withdraw(ethers.parseEther("0.05"))).to.be.revertedWithCustomError(contract, 'AccessControlUnauthorizedAccount');
         });
     });
 
@@ -288,11 +292,11 @@ describe("MimimmiCat", function () {
 
         context("token URI", async function () {
             it("error if token is not minted", async () => {
-                await expect(contract.tokenURI(1)).to.be.reverted;
+                await expect(contract.tokenURI(1)).to.be.revert(ethers);
             });
             it("success if token is minted", async () => {
                 await contract.connect(signers[22]).mint({
-                    value: ethers.utils.parseEther("0.05"),
+                    value: ethers.parseEther("0.05"),
                 });
                 expect( await contract.tokenURI(1)).to.equal('ipfs://hidden_metadata');
             });
@@ -301,9 +305,9 @@ describe("MimimmiCat", function () {
         context("Withdraw", async function () {
             it("cannot withdraw", async () => {
                 await contract.connect(signers[90]).mint({
-                    value: ethers.utils.parseEther("0.05"),
+                    value: ethers.parseEther("0.05"),
                 });
-                await expect(contract.withdraw(ethers.utils.parseEther("0.05"))).to.be.revertedWithCustomError(contract, 'MCTMintIsNotClosed');
+                await expect(contract.withdraw(ethers.parseEther("0.05"))).to.be.revertedWithCustomError(contract, 'MCTMintIsNotClosed');
             });
         });
 
@@ -311,42 +315,42 @@ describe("MimimmiCat", function () {
             it("user in black list", async () => {
                 await contract.connect(signers[10]).setToBlackList(signers[99].address, true);
                 await expect(contract.connect(signers[99]).mint({
-                    value: ethers.utils.parseEther("0.05"),
+                    value: ethers.parseEther("0.05"),
                 })).to.be.revertedWithCustomError(contract, 'MCTAdddresInBlackList');
             });
 
             it("invalid ethers", async () => {
                 await expect(contract.connect(signers[90]).mint({
-                    value: ethers.utils.parseEther("0.01"),
+                    value: ethers.parseEther("0.01"),
                 })).to.be.revertedWithCustomError(contract, 'MCTInvalidEthers');
             });
 
             it("success mint", async () => {
                 await contract.connect(signers[90]).mint({
-                    value: ethers.utils.parseEther("0.05"),
+                    value: ethers.parseEther("0.05"),
                 });
                 expect( await contract.ownerOf(1)).to.equal(signers[90].address);
-                expect(await ethers.provider.getBalance(contract.address)).to.equal(ethers.utils.parseEther("0.05"));
+                expect(await ethers.provider.getBalance(contract.target)).to.equal(ethers.parseEther("0.05"));
             });
 
             it("signed mint with invalid signature", async () => {
-                sign = await _signForMint(signers[20]);
+                let sign = await _signForMint(signers[20]);
                 await expect(contract.connect(signers[21]).signedMint(signers[21].address, sign.v, sign.r, sign.s, {
-                    value: ethers.utils.parseEther("0.05"),
+                    value: ethers.parseEther("0.05"),
                 })).to.be.revertedWithCustomError(contract, 'InvalidSignature');
             });
 
             it("signed mint with valid signature", async () => {
-                sign = await _signForMint(signers[20]);
+                let sign = await _signForMint(signers[20]);
                 await contract.connect(signers[21]).signedMint(signers[20].address, sign.v, sign.r, sign.s, {
-                    value: ethers.utils.parseEther("0.05"),
+                    value: ethers.parseEther("0.05"),
                 });
                 expect( await contract.ownerOf(1)).to.equal(signers[20].address);
                 // reply attack
                 await expect(contract.connect(signers[20]).signedMint(signers[20].address, sign.v, sign.r, sign.s, {
-                    value: ethers.utils.parseEther("0.05"),
+                    value: ethers.parseEther("0.05"),
                 })).to.be.revertedWithCustomError(contract, 'InvalidSignature');
-                expect(await ethers.provider.getBalance(contract.address)).to.equal(ethers.utils.parseEther("0.05"));
+                expect(await ethers.provider.getBalance(contract.target)).to.equal(ethers.parseEther("0.05"));
             });
         });
 
@@ -370,12 +374,12 @@ describe("MimimmiCat", function () {
             });
 
             it("signed free mint with invalid signature", async () => {
-                sign = await _signForFreeMint(signers[53]);
+                let sign = await _signForFreeMint(signers[53]);
                 await expect(contract.connect(signers[21]).signedFreeMint(signers[21].address, _proof(signers[53]), sign.v, sign.r, sign.s)).to.be.revertedWithCustomError(contract, 'InvalidSignature');
             });
 
             it("signed free mint with valid signature", async () => {
-                sign = await _signForFreeMint(signers[53]);
+                let sign = await _signForFreeMint(signers[53]);
                 await contract.connect(signers[21]).signedFreeMint(signers[53].address, _proof(signers[53]), sign.v, sign.r, sign.s);
                 expect( await contract.ownerOf(1)).to.equal(signers[53].address);
             });
@@ -389,11 +393,11 @@ describe("MimimmiCat", function () {
             it("fill free pool last", async () => {
                 for (var i=70; i<80; i++) {
                     await contract.connect(signers[i]).mint({
-                        value: ethers.utils.parseEther("0.05"),
+                        value: ethers.parseEther("0.05"),
                     });
                 }
                 await expect(contract.connect(signers[70]).mint({
-                    value: ethers.utils.parseEther("0.05"),
+                    value: ethers.parseEther("0.05"),
                 })).to.be.revertedWithCustomError(contract, 'MCTLimitExceed');
                 // whitelist still can mint
                 for (var i=51; i<56; i++) {
@@ -408,11 +412,11 @@ describe("MimimmiCat", function () {
                 }
                 for (var i=70; i<80; i++) {
                     await contract.connect(signers[i]).mint({
-                        value: ethers.utils.parseEther("0.05"),
+                        value: ethers.parseEther("0.05"),
                     });
                 }
                 await expect(contract.connect(signers[70]).mint({
-                    value: ethers.utils.parseEther("0.05"),
+                    value: ethers.parseEther("0.05"),
                 })).to.be.revertedWithCustomError(contract, 'MCTLimitExceed');
                 expect( await contract.tokenURI(15)).to.equal('ipfs://hidden_metadata'); // token with max id is minted
             });
@@ -426,7 +430,7 @@ describe("MimimmiCat", function () {
             await SetWhitelist();
             await contract.connect(signers[8]).setState(2);
             await contract.connect(signers[90]).mint({
-                value: ethers.utils.parseEther("0.05"),
+                value: ethers.parseEther("0.05"),
             });
             await contract.connect(signers[53]).freeMint(_proof(signers[53]));
             await Close();
@@ -455,23 +459,23 @@ describe("MimimmiCat", function () {
 
         context("Withdraw", async function () {
             it("can withdraw", async () => {
-                await contract.withdraw(ethers.utils.parseEther("0.05"));
-                expect(await ethers.provider.getBalance(contract.address)).to.equal(0);
+                await contract.withdraw(ethers.parseEther("0.05"));
+                expect(await ethers.provider.getBalance(contract.target)).to.equal(0);
             });
         });
 
         context("Permit", async function () {
             it("permit with invalid signature", async () => {
-                sign = await _signForPermit(signers[90], signers[70], 1);
+                let sign = await _signForPermit(signers[90], signers[70], 1);
                 await expect(contract.connect(signers[60]).permit(signers[90].address, signers[60].address, 1, sign.v, sign.r, sign.s)).to.be.revertedWithCustomError(contract, 'InvalidSignature');
             });
     
             it("permit with valid signature", async () => {
-                sign = await _signForPermit(signers[90], signers[70], 1);
+                let sign = await _signForPermit(signers[90], signers[70], 1);
                 await contract.connect(signers[60]).permit(signers[90].address, signers[70].address, 1, sign.v, sign.r, sign.s);
                 expect( await contract.getApproved(1)).to.equal(signers[70].address);
             });
         });
     });
-   
+    
 });

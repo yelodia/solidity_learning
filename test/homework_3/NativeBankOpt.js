@@ -1,6 +1,8 @@
 /*global describe, context, beforeEach, it*/
-const { ethers, network } = require("hardhat");
-const { expect } = require("chai");
+import { expect } from "chai";
+import { network } from "hardhat";
+
+const { ethers } = await network.connect();
 
 describe("NativeBankOpt", function () {
     let signers;
@@ -10,11 +12,11 @@ describe("NativeBankOpt", function () {
     let snapshotId;
 
     before(async function () {
-        snapshotId = await network.provider.send('evm_snapshot');
+        snapshotId = await ethers.provider.send('evm_snapshot');
     });
 
     after(async () => {
-        await network.provider.send("evm_revert", [snapshotId]);
+        await ethers.provider.send("evm_revert", [snapshotId]);
     });
 
     beforeEach(async function () {
@@ -23,13 +25,11 @@ describe("NativeBankOpt", function () {
         deployer = signers[0];
 
         // Contracts
-        const NativeBank = await ethers.getContractFactory("NativeBankOpt");
+        const NativeBank = await ethers.getContractFactory("NativeBank");
         contract = await NativeBank.deploy([signers[1].address, signers[2].address, signers[3].address]);
-        await contract.deployed();
         
         const Attacker = await ethers.getContractFactory("ReentrancyAttacker");
-        attacker = await Attacker.deploy(contract.address);
-        await attacker.deployed();
+        attacker = await Attacker.deploy(contract.target);
     });
 
     context("Initialization", async function () {
@@ -52,18 +52,18 @@ describe("NativeBankOpt", function () {
 
         it("Success Deposit", async () => {
             await contract.connect(signers[5]).deposit({
-                value: ethers.utils.parseEther("1.0"),
+                value: ethers.parseEther("1.0"),
             });
-            expect(await contract.balanceOf(signers[5].address)).to.equal(ethers.utils.parseEther("0.99"));
-            expect(await contract.accumulator()).to.equal(ethers.utils.parseEther("0.01"));
-            expect(await ethers.provider.getBalance(contract.address)).to.equal(ethers.utils.parseEther("1.0"));
+            expect(await contract.balanceOf(signers[5].address)).to.equal(ethers.parseEther("0.99"));
+            expect(await contract.accumulator()).to.equal(ethers.parseEther("0.01"));
+            expect(await ethers.provider.getBalance(contract.target)).to.equal(ethers.parseEther("1.0"));
 
             await contract.connect(signers[5]).deposit({
-                value: ethers.utils.parseEther("0.5"),
+                value: ethers.parseEther("0.5"),
             });
-            expect(await contract.balanceOf(signers[5].address)).to.equal(ethers.utils.parseEther("1.485"));
-            expect(await contract.accumulator()).to.equal(ethers.utils.parseEther("0.015"));
-            expect(await ethers.provider.getBalance(contract.address)).to.equal(ethers.utils.parseEther("1.5"));
+            expect(await contract.balanceOf(signers[5].address)).to.equal(ethers.parseEther("1.485"));
+            expect(await contract.accumulator()).to.equal(ethers.parseEther("0.015"));
+            expect(await ethers.provider.getBalance(contract.target)).to.equal(ethers.parseEther("1.5"));
         });
 
     });
@@ -89,16 +89,16 @@ describe("NativeBankOpt", function () {
 
         beforeEach(async function () {
             await contract.connect(signers[5]).deposit({
-                value: ethers.utils.parseEther("1.0")
+                value: ethers.parseEther("1.0")
             });
         });
 
         it("Success withdraw", async () => {
-            await contract.connect(signers[5]).withdraw(ethers.utils.parseEther("0.5"));
-            expect(await contract.balanceOf(signers[5].address)).to.equal(ethers.utils.parseEther("0.49"));
+            await contract.connect(signers[5]).withdraw(ethers.parseEther("0.5"));
+            expect(await contract.balanceOf(signers[5].address)).to.equal(ethers.parseEther("0.49"));
 
-            await contract.connect(signers[5]).withdraw(ethers.utils.parseEther("0.4"));
-            expect(await contract.balanceOf(signers[5].address)).to.equal(ethers.utils.parseEther("0.09"));
+            await contract.connect(signers[5]).withdraw(ethers.parseEther("0.4"));
+            expect(await contract.balanceOf(signers[5].address)).to.equal(ethers.parseEther("0.09"));
         });
 
         it("Zero withdraw", async () => {
@@ -106,7 +106,7 @@ describe("NativeBankOpt", function () {
         });
 
         it("Exceeds Balance", async () => {
-            await expect(contract.connect(signers[5]).withdraw(ethers.utils.parseEther("1.5"))).to.be.revertedWithCustomError(contract, 'WithdrawalAmountExceedsBalance');
+            await expect(contract.connect(signers[5]).withdraw(ethers.parseEther("1.5"))).to.be.revertedWithCustomError(contract, 'WithdrawalAmountExceedsBalance');
         });
 
     });
@@ -116,7 +116,7 @@ describe("NativeBankOpt", function () {
         beforeEach(async function () {
             await contract.setCommission(2000);
             await contract.connect(signers[5]).deposit({
-                value: ethers.utils.parseEther("1.0")
+                value: ethers.parseEther("1.0")
             });
         });
 
@@ -129,29 +129,29 @@ describe("NativeBankOpt", function () {
         });
 
         it("Exceeds Balance", async () => {
-            await expect(contract.withdrawAccumulator(ethers.utils.parseEther("0.3"))).to.be.revertedWithCustomError(contract, 'WithdrawalAmountExceedsBalance');
+            await expect(contract.withdrawAccumulator(ethers.parseEther("0.3"))).to.be.revertedWithCustomError(contract, 'WithdrawalAmountExceedsBalance');
         });
 
         it("Withdraw divided value", async () => {
-            expect(await contract.accumulator()).to.equal(ethers.utils.parseEther("0.2"));
-            await contract.withdrawAccumulator(ethers.utils.parseEther("0.1"));
-            expect(await ethers.provider.getBalance(signers[1].address)).to.equal(ethers.utils.parseEther("10000.025"));
-            expect(await ethers.provider.getBalance(signers[2].address)).to.equal(ethers.utils.parseEther("10000.025"));
-            expect(await ethers.provider.getBalance(signers[3].address)).to.equal(ethers.utils.parseEther("10000.025"));
-            expect(await ethers.provider.getBalance(contract.address)).to.equal(ethers.utils.parseEther("0.9"));
-            expect(await contract.accumulator()).to.equal(ethers.utils.parseEther("0.1"));
+            expect(await contract.accumulator()).to.equal(ethers.parseEther("0.2"));
+            await contract.withdrawAccumulator(ethers.parseEther("0.1"));
+            expect(await ethers.provider.getBalance(signers[1].address)).to.equal(ethers.parseEther("10000.025"));
+            expect(await ethers.provider.getBalance(signers[2].address)).to.equal(ethers.parseEther("10000.025"));
+            expect(await ethers.provider.getBalance(signers[3].address)).to.equal(ethers.parseEther("10000.025"));
+            expect(await ethers.provider.getBalance(contract.target)).to.equal(ethers.parseEther("0.9"));
+            expect(await contract.accumulator()).to.equal(ethers.parseEther("0.1"));
         });
 
         it("Withdraw non-divided value", async () => {
-            let accumulator = ethers.utils.parseEther("0.2").sub(303);
-            let balance = ethers.utils.parseEther("10000.025").add(75);
-            let contractBalance = ethers.utils.parseEther("1.0").sub(303)
+            let accumulator = ethers.parseEther("0.2") - 303n;
+            let balance = ethers.parseEther("10000.025") + 75n;
+            let contractBalance = ethers.parseEther("1.0") - 303n;
 
             await contract.withdrawAccumulator(303);
             expect(await ethers.provider.getBalance(signers[1].address)).to.equal(balance);
             expect(await ethers.provider.getBalance(signers[2].address)).to.equal(balance);
             expect(await ethers.provider.getBalance(signers[3].address)).to.equal(balance);
-            expect(await ethers.provider.getBalance(contract.address)).to.equal(contractBalance);
+            expect(await ethers.provider.getBalance(contract.target)).to.equal(contractBalance);
             expect(await contract.accumulator()).to.equal(accumulator);
         });
 
@@ -178,8 +178,7 @@ describe("NativeBankOpt", function () {
 
     context("Reentrancy", async function () {
         it("Revert", async () => {
-            //await attacker.attack({value: ethers.utils.parseEther("1.0")});
-            await expect(attacker.attack({value: ethers.utils.parseEther("1.0")})).to.be.reverted;
+            await expect(attacker.attack({value: ethers.parseEther("1.0")})).to.be.revert(ethers);
         });
     });
 });

@@ -7,6 +7,10 @@ typechain
 
 # Hardhat files
 cache
+types
+dist
+bundle
+storage_layout
 artifacts
 coverage
 coverage.json
