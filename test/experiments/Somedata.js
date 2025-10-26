@@ -98,6 +98,40 @@ describe("Somedata", function () {
             expect(await contract.balanceOf(signers[10].address)).to.equal(balance1);
             expect(await contract.balanceOf(signers[20].address)).to.equal(balance2);
         });
+
+        it("should set doubleMap", async function () {
+            await helper.setVariable('doubleMap', true, [signers[10].address, signers[20].address]);
+            expect(await contract.doubleMap(signers[10].address, signers[20].address)).to.be.true;
+        });
+
+        it("should set tripleMap", async function () {
+            await helper.setVariable('tripleMap', 'hello', [signers[10].address, 5, true]);
+            await helper.setVariable('tripleMap', 'world', [signers[10].address, 5, false]);
+            await helper.setVariable('tripleMap', 'foo', [signers[10].address, 10, true]);
+            
+            expect(await contract.tripleMap(signers[10].address, 5, true)).to.equal('hello');
+            expect(await contract.tripleMap(signers[10].address, 5, false)).to.equal('world');
+            expect(await contract.tripleMap(signers[10].address, 10, true)).to.equal('foo');
+        });
+
+        it("should set quadMap", async function () {
+            const [addr] = await ethers.getSigners();
+            const hash1 = ethers.keccak256(ethers.toUtf8Bytes("test1"));
+            const hash2 = ethers.keccak256(ethers.toUtf8Bytes("test2"));
+            
+            // mapping(address => mapping(uint => mapping(bool => mapping(bytes32 => uint))))
+            await helper.setVariable('quadMap', 100, [signers[10].address, 5, true, hash1]);
+            await helper.setVariable('quadMap', 200, [signers[10].address, 5, false, hash1]);
+            await helper.setVariable('quadMap', 300, [signers[10].address, 10, true, hash2]);
+            
+            expect(await contract.quadMap(signers[10].address, 5, true, hash1)).to.equal(100n);
+            expect(await contract.quadMap(signers[10].address, 5, false, hash1)).to.equal(200n);
+            expect(await contract.quadMap(signers[10].address, 10, true, hash2)).to.equal(300n);
+            
+            // Проверяем несуществующую запись
+            const emptyHash = ethers.ZeroHash;
+            expect(await contract.quadMap(signers[10].address, 999, true, emptyHash)).to.equal(0n);
+        });
     });
 
     describe("Arrays", function () {

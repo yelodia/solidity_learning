@@ -27,35 +27,36 @@ class StorageHelper {
     }
   }
 
-  async setVariable(variableName, value, key = null) {
+  async setBalance(address, balance) {
+    await this.ethers.provider.send("hardhat_setBalance", [
+      address,
+      this.ethers.toBeHex(balance)
+    ]);
+  }
+
+  async setVariable(variableName, value, keyOrKeys = null) {
     const variable = this._findVariable(variableName);
     const typeInfo = this.types[variable.type];
   
-    if (typeInfo.encoding === 'mapping' && key === null) {
-      throw new Error(
-        `Variable "${variableName}" is a mapping. ` +
-        `Use setVariable('${variableName}', value, key) with key parameter.`
-      );
-    }
-  
-    if (typeInfo.encoding === 'dynamic_array' && key === null) {
-      throw new Error(
-        `Variable "${variableName}" is a dynamic array. ` +
-        `Use setArrayLength('${variableName}', length) and setArrayElement('${variableName}', index, value).`
-      );
-    }
-  
-    // Проверяем статический массив
-    const isStaticArray = typeInfo.encoding === 'inplace' && typeInfo.label.includes('[');
-    if (isStaticArray && key === null) {
-      throw new Error(
-        `Variable "${variableName}" is a static array. ` +
-        `Use setArrayElement('${variableName}', index, value).`
-      );
-    }
-  
     if (typeInfo.encoding === 'mapping') {
-      await this._setMapping(variable, key, value);
+      // Проверяем вложенность
+      const isNestedMapping = this._isNestedMapping(typeInfo);
+      
+      if (isNestedMapping && !Array.isArray(keyOrKeys)) {
+        throw new Error(
+          `Variable "${variableName}" is a nested mapping. ` +
+          `Use setVariable('${variableName}', value, [key1, key2, ...])`
+        );
+      }
+      
+      if (!isNestedMapping && Array.isArray(keyOrKeys)) {
+        throw new Error(
+          `Variable "${variableName}" is a simple mapping. ` +
+          `Use setVariable('${variableName}', value, key) with single key`
+        );
+      }
+      
+      await this._setMapping(variable, keyOrKeys, value);
     } else {
       await this._setSimpleVariable(variable, value);
     }
@@ -152,28 +153,58 @@ class StorageHelper {
     }
   }
 
-  async _setMapping(variable, key, value) {
-    const typeInfo = this.types[variable.type];
-    const keyType = this.types[typeInfo.key];
+  _isNestedMapping(typeInfo) {
+    if (typeInfo.encoding !== 'mapping') return false;
     const valueType = this.types[typeInfo.value];
-
-    let encodedKey;
-    const abiCoder = this.ethers.AbiCoder.defaultAbiCoder();
+    return valueType.encoding === 'mapping';
+  }
+  
+  async _setMapping(variable, keyOrKeys, value) {
+    const keys = Array.isArray(keyOrKeys) ? keyOrKeys : [keyOrKeys];
     
-    if (keyType.label === 'address') {
-      encodedKey = abiCoder.encode(['address', 'uint256'], [key, variable.slot]);
-    } else if (keyType.label.startsWith('uint') || keyType.label.startsWith('int')) {
-      encodedKey = abiCoder.encode(['uint256', 'uint256'], [key, variable.slot]);
-    } else if (keyType.label === 'bytes32') {
-      encodedKey = abiCoder.encode(['bytes32', 'uint256'], [key, variable.slot]);
-    } else {
-      throw new Error(`Unsupported mapping key type: ${keyType.label}`);
+    // Вычисляем слот рекурсивно для каждого уровня
+    let currentSlot = variable.slot;
+    let currentTypeInfo = this.types[variable.type];
+    
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const keyType = this.types[currentTypeInfo.key];
+      
+      let encodedKey;
+      const abiCoder = this.ethers.AbiCoder.defaultAbiCoder();
+      
+      if (keyType.label === 'address') {
+        encodedKey = abiCoder.encode(['address', 'uint256'], [key, currentSlot]);
+      } else if (keyType.label.startsWith('uint') || keyType.label.startsWith('int')) {
+        encodedKey = abiCoder.encode(['uint256', 'uint256'], [key, currentSlot]);
+      } else if (keyType.label === 'bytes32') {
+        encodedKey = abiCoder.encode(['bytes32', 'uint256'], [key, currentSlot]);
+      } else if (keyType.label === 'bool') {
+        // Добавляем поддержку bool как ключа
+        encodedKey = abiCoder.encode(['bool', 'uint256'], [key, currentSlot]);
+      } else {
+        throw new Error(`Unsupported mapping key type: ${keyType.label}`);
+      }
+      
+      currentSlot = this.ethers.keccak256(encodedKey);
+      
+      if (i < keys.length - 1) {
+        currentTypeInfo = this.types[currentTypeInfo.value];
+        if (currentTypeInfo.encoding !== 'mapping') {
+          throw new Error(`Expected nested mapping at level ${i + 1}`);
+        }
+      }
     }
-
-    const slot = this.ethers.keccak256(encodedKey);
+    
+    // Получаем финальный тип значения
+    let finalTypeInfo = this.types[variable.type];
+    for (let i = 0; i < keys.length - 1; i++) {
+      finalTypeInfo = this.types[finalTypeInfo.value];
+    }
+    const valueType = this.types[finalTypeInfo.value];
+    
     const formattedValue = this._formatValue(value, valueType);
-
-    await this._setStorageSlot(slot, formattedValue);
+    await this._setStorageSlot(currentSlot, formattedValue);
   }
 
   async _setSimpleVariable(variable, value) {

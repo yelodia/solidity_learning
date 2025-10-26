@@ -19,4 +19,7 @@ contract Somedata {
     string[5] public sstrings;
     string[] public dstrings;
     uint24[7] public numbers24;
+    mapping(address => mapping(address => bool)) public doubleMap;
+    mapping(address => mapping(uint256 => mapping(bool => string))) public tripleMap;
+    mapping(address => mapping(uint => mapping(bool => mapping(bytes32 => uint)))) public quadMap;
 }
