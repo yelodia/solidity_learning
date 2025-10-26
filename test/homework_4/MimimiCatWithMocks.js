@@ -25,30 +25,6 @@ describe("MimimmiCat", function () {
     let helper;
 
     // helpers
-    async function SetWhitelist() {
-        await multiWallet.connect(signers[10]).confirmTransaction(1);
-        await multiWallet.executeTransaction(1);
-    }
-
-    async function Close() {
-        await multiWallet.connect(signers[10]).confirmTransaction(0);
-        await multiWallet.executeTransaction(0);
-    }
-
-    async function SharedSetState(name, val) {
-        it("can set "+name+" state", async () => {
-            await contract.connect(signers[8]).setState(val);
-            expect(await contract.state()).to.equal(val);
-        });
-
-        it("non-moderator cannot set "+name+" state", async () => {
-            await expect(contract.connect(signers[5]).setState(val)).to.be.revertedWithCustomError(contract, 'AccessControlUnauthorizedAccount');
-        });
-
-        it("cannot set close state", async () => {
-            await expect(contract.connect(signers[9]).setState(3)).to.be.revertedWithCustomError(contract, 'MCTInvalidTransition');
-        });
-    }
 
     async function SharedMintNotOpened() {
         it("cannot mint", async () => {
