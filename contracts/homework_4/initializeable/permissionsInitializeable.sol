@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 abstract contract PermissionsInitializeable {
     using MessageHashUtils for bytes32;
-    string private VERSION;
-    string private NAME;
+    string private pVersion;
+    string private pName;
     mapping(address => uint256) public nonces;
 
     function permissionsInit(string memory _name, string memory _version) internal {
-        VERSION = _version;
-        NAME = _name;
+        pVersion = _version;
+        pName = _name;
     }
 
     error InvalidSignature();
@@ -21,8 +21,8 @@ abstract contract PermissionsInitializeable {
             keccak256(
                 abi.encode(
                     keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                    keccak256(bytes(NAME)),
-                    keccak256(bytes(VERSION)),
+                    keccak256(bytes(pName)),
+                    keccak256(bytes(pVersion)),
                     block.chainid,
                     address(this)
                 )
@@ -30,7 +30,7 @@ abstract contract PermissionsInitializeable {
     }
 
     function version() public view returns(string memory) {
-        return VERSION;
+        return pVersion;
     }
 
     function _validateClose(string calldata _uri, address _signer, uint8 v, bytes32 r, bytes32 s) internal view {

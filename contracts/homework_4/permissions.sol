@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract Permissions {
     using MessageHashUtils for bytes32;
-    string private VERSION = "1.0.0";
-    string private NAME = "MimimiCat";
+    string private pVersion = "1.0.0";
+    string private pName = "MimimiCat";
     uint256 internal immutable INITIAL_CHAIN_ID;
     bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
     mapping(address => uint256) public nonces;
@@ -14,8 +14,8 @@ contract Permissions {
     constructor(string memory _name, string memory _version) {
         INITIAL_CHAIN_ID = block.chainid;
         INITIAL_DOMAIN_SEPARATOR = _computeDomainSeparator();
-        VERSION = _version;
-        NAME = _name;
+        pVersion = _version;
+        pName = _name;
     }
 
     error InvalidSignature();
@@ -30,8 +30,8 @@ contract Permissions {
             keccak256(
                 abi.encode(
                     keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                    keccak256(bytes(NAME)),
-                    keccak256(bytes(VERSION)),
+                    keccak256(bytes(pName)),
+                    keccak256(bytes(pVersion)),
                     block.chainid,
                     address(this)
                 )

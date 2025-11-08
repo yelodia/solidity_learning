@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { Permissions } from "./permissions.sol";
 import { RoleControl } from "./roleControl.sol";
 
@@ -39,7 +39,7 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
     uint256 public constant REWARD_FOR_CLOSE=1e18*2; // награда победителю в конкурсе на лучшую коллекцию
 
     uint8 public state;
-    uint32 public immutable maxSupply; // общее количество токенов
+    uint32 public immutable MAX_SUPPLY; // общее количество токенов
     uint32 private whiteListSupply; // пул свободных токенов для вайтлиста, уменьшается при бесплатном минте
     uint32 private tokenIdCounter; // текущий заминченный токен
     uint256 public mintPrice; // цена за минт
@@ -63,7 +63,7 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
     event SetState(uint8 state);
 
     constructor(uint32 _maxSupply, uint32 _whiteListSupply, string memory _uri, uint256 _mintPrice, address signer) RoleControl(signer) Permissions("MimimiCat", "1.0.0") ERC721("MimimiCat", "MCT") payable {
-        maxSupply = _maxSupply;
+        MAX_SUPPLY = _maxSupply;
         whiteListSupply = _whiteListSupply;
         baseURI = _uri;
         mintPrice = _mintPrice;
@@ -106,14 +106,14 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
         _freeMintMCT(_owner, _proof);
     }
 
-    function _mintMCT(address _account) internal mintEnabled(maxSupply - whiteListSupply) {
+    function _mintMCT(address _account) internal mintEnabled(MAX_SUPPLY - whiteListSupply) {
         require(!blackList[_account], MCTAdddresInBlackList(_account)); // проверяем, что адрес не в черном списке
         require(msg.value == mintPrice, MCTInvalidEthers(_account, mintPrice, msg.value)); // плата за минт должна соответствовать той, что установлена в контракте
 
         _mint(_account, tokenIdCounter);
     }
 
-    function _freeMintMCT(address _account, bytes32[] calldata _proof) internal mintEnabled(maxSupply) {
+    function _freeMintMCT(address _account, bytes32[] calldata _proof) internal mintEnabled(MAX_SUPPLY) {
         require(inWhiteList(_account, _proof), MCTAdddresNotInWiteList(_account)); // проверка, что адрес в вайтлисте
         require(!whiteListMinted[_account], MCTAlreadyHasFreeMint(_account)); // проверка, что адрес еще не заминтил свой бесплатный токен
         

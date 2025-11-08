@@ -10,7 +10,7 @@ contract NativeBankOpt is INativeBank {
     // uint16 + address влезают в один слот, экономия ~ 18600 газа при деплое
     uint16 public commissionBp;
     // установка адреса овнера в immutable увеличивает расход газа на деплой ~ на 10000, но экономит ~ 2000 при снятии баланса
-    address public immutable owner; 
+    address public immutable OWNER; 
     // если есть возможность заменить массив на мапу, меняем, т.к push дороже, чем запись в мапу, экономия при деплое ~ 40000 газа
     mapping(uint8 index => address holder) public stakeHolders;
     uint256 public accumulator; 
@@ -26,7 +26,7 @@ contract NativeBankOpt is INativeBank {
 
     // после всех манипуляций итоговая стоимость деплоя уменьшилась ~ на 70 000 газа
     constructor(address[3] memory _holders) payable { // payable конструктора экономит ~ 200 газа. Мелочь, а приятно
-        owner = msg.sender;
+        OWNER = msg.sender;
         for(uint8 i=0; i<3; ++i) {
             stakeHolders[i] = _holders[i];
         }
@@ -117,7 +117,7 @@ contract NativeBankOpt is INativeBank {
     }
 
     modifier onlyOwner() {
-        if (owner != msg.sender) {
+        if (OWNER != msg.sender) {
             revert NotContractOwner();
         }
         _;

@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { PermissionsInitializeable } from "./permissionsInitializeable.sol";
 import { RoleControlInitializeable } from "./roleControlInitializeable.sol";
 
@@ -16,7 +16,7 @@ abstract contract LotteryInitializeable is PermissionsInitializeable, ERC721Upgr
     uint256 public constant REWARD_FOR_CLOSE=1e18*2;
 
     uint8 public state;
-    uint32 public immutable maxSupply; 
+    uint32 public immutable MAX_SUPPLY; 
     uint32 private whiteListSupply; 
     uint32 private tokenIdCounter; 
     uint256 public mintPrice; 
@@ -41,7 +41,7 @@ abstract contract LotteryInitializeable is PermissionsInitializeable, ERC721Upgr
 
     // в конструкторе осталось только immutable значение
     constructor(uint32 _maxSupply) {
-        maxSupply = _maxSupply;
+        MAX_SUPPLY = _maxSupply;
     }
 
     // остальное переехало в initialize
@@ -89,13 +89,13 @@ abstract contract LotteryInitializeable is PermissionsInitializeable, ERC721Upgr
         _freeMintMCT(_owner, _proof);
     }
 
-    function _mintMCT(address _account) internal virtual mintEnabled(maxSupply - whiteListSupply) {
+    function _mintMCT(address _account) internal virtual mintEnabled(MAX_SUPPLY - whiteListSupply) {
         require(!blackList[_account], MCTAdddresInBlackList(_account)); 
         require(msg.value == mintPrice, MCTInvalidEthers(_account, mintPrice, msg.value)); 
         _mint(_account, tokenIdCounter);
     }
 
-    function _freeMintMCT(address _account, bytes32[] calldata _proof) internal virtual mintEnabled(maxSupply) {
+    function _freeMintMCT(address _account, bytes32[] calldata _proof) internal virtual mintEnabled(MAX_SUPPLY) {
         require(inWhiteList(_account, _proof), MCTAdddresNotInWiteList(_account)); 
         require(!whiteListMinted[_account], MCTAlreadyHasFreeMint(_account)); 
         

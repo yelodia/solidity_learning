@@ -178,7 +178,7 @@ describe("MimimmiCat", function () {
     context("Initialization", async function () {
         it("Correctly constructs nft", async () => {
             expect(await contract.owner()).to.equal(deployer.address);
-            expect(await contract.maxSupply()).to.equal(15);
+            expect(await contract.MAX_SUPPLY()).to.equal(15);
             expect(await contract.mintPrice()).to.equal(ethers.parseEther("0.05"));
             expect(await contract.name()).to.equal("MimimiCat");
             expect(await contract.state()).to.equal(1);

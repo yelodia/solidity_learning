@@ -7,10 +7,13 @@ typechain
 
 # Hardhat files
 cache
+cache_forge
 types
 dist
 bundle
 storage_layout
 artifacts
+artifacts_forge
 coverage
 coverage.json
+lib
