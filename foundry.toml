@@ -15,9 +15,20 @@ remappings = [
 verbosity = 3
 viaIR = true
 
+fs_permissions = [
+    { access = "read", path = "./test/data" },
+    { access = "read-write", path = "./output" }
+]
+
 [lint]
 exclude_lints = [
     "asm-keccak256",
     "mixed-case-function",
     "unwrapped-modifier-logic",
 ]
+
+[rpc_endpoints]
+sepolia = "https://sepolia.infura.io/v3/${INFURA_API_KEY_SEPOLIA}"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
