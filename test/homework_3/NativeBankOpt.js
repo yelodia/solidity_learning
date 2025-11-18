@@ -178,6 +178,11 @@ describe("NativeBankOpt", function () {
 
     context("Reentrancy", async function () {
         it("Revert", async () => {
+            await ethers.provider.send("hardhat_setBalance", [
+                contract.target,
+                ethers.toBeHex(ethers.parseEther("5.0"))
+            ]);
+            
             await expect(attacker.attack({value: ethers.parseEther("1.0")})).to.be.revert(ethers);
         });
     });
