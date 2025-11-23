@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {Test,console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {StdStorage, stdStorage} from "forge-std/StdStorage.sol";
 import {Merkle} from "murky/src/Merkle.sol";
 import {MimimiCat} from "../../contracts/homework_4/mimimiCat.sol";

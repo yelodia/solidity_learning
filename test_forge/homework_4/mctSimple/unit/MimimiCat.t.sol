@@ -2,7 +2,6 @@
 pragma solidity ^0.8.28;
 
 import {MimimiCatUnitTestBase} from "./MimimiCatUnitTestBase.sol";
-import {console} from "forge-std/Test.sol";
 
 contract InitializationTest is MimimiCatUnitTestBase {
     
