@@ -32,3 +32,7 @@ sepolia = "https://sepolia.infura.io/v3/${INFURA_API_KEY_SEPOLIA}"
 
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
+
+[invariant]
+runs = 256              # Количество runs для fuzzing
+depth = 50              # Глубина вызовов за один run

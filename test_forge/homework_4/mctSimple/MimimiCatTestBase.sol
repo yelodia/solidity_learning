@@ -5,15 +5,12 @@ import {Test,console} from "forge-std/Test.sol";
 import {StdStorage, stdStorage} from "forge-std/StdStorage.sol";
 import {Merkle} from "murky/src/Merkle.sol";
 import {MimimiCat} from "../../../contracts/homework_4/mimimiCat.sol";
-import {MockMultiSigWallet} from "./MockMultiSigWallet.sol";
-import {SignatureHelper} from "./SignatureHelper.sol";
+import {SignatureHelper} from "../helpers/SignatureHelper.sol";
 import {Accounts} from "../../helpers/Accounts.sol";
 
 
 abstract contract MimimiCatTestBase is Test, Accounts {
     using stdStorage for StdStorage;
-    
-    // === Константы ===
     uint8 constant STATE_PAUSE = 1;
     uint8 constant STATE_OPEN = 2;
     uint8 constant STATE_CLOSE = 3;
@@ -27,12 +24,8 @@ abstract contract MimimiCatTestBase is Test, Accounts {
     string constant AWESOME_URI = "ipfs://awesome_metadata/";
     string constant INVALID_URI = "ipfs://another_metadata/";
     
-    bytes32 constant ROLE_MODERATOR = keccak256("ROLE_MODERATOR");
-    bytes32 constant ROLE_STAKEHOLDER = keccak256("ROLE_STAKEHOLDER");
-    
-    // === Контракты ===
+    // === Contracts ===
     MimimiCat public mimimiCat;
-    MockMultiSigWallet public mockMultiSig;
     SignatureHelper public sigHelper;
     Merkle public murky;
     
@@ -46,24 +39,12 @@ abstract contract MimimiCatTestBase is Test, Accounts {
     function setUp() public virtual {
         createSigners(35);
         owner = signers[0];
-        vm.startPrank(owner.addr);
+
+        deployContracts();
         
-        mockMultiSig = new MockMultiSigWallet();
-        mimimiCat = new MimimiCat(
-            MAX_SUPPLY,
-            WHITELIST_SUPPLY,
-            BASE_URI,
-            MINT_PRICE,
-            address(mockMultiSig)
-        );
-        
-        vm.stopPrank();
-        
-        // Инициализация хелперов
         sigHelper = new SignatureHelper(address(mimimiCat));
         murky = new Merkle();
         
-        // Генерируем leaves и root
         for (uint8 i = 0; i < 5; i++) {
             address addr = signers[30+i].addr;
             whitelistAddresses[addr] = i;
@@ -72,71 +53,8 @@ abstract contract MimimiCatTestBase is Test, Accounts {
         whitelistRoot = murky.getRoot(whitelistLeaves);
         
     }
-    
-    // === Модификаторы для setup состояний ===
-    
-    modifier withBalance(uint256 amount) {
-        vm.deal(address(mimimiCat), amount);
-        _;
-    }
-    
-    modifier withState(uint8 state) {
-        stdstore
-            .target(address(mimimiCat))
-            .enable_packed_slots()
-            .sig("state()")
-            .checked_write(uint8(state));
-        _;
-    }
 
-    modifier withStakeholder(address addr) {
-        vm.prank(owner.addr);
-        mimimiCat.addStakeHolders(_toArray(addr));
-        _;
-    }
-
-    modifier withModerator(address addr) {
-        vm.prank(owner.addr);
-        mimimiCat.addModerators(_toArray(addr));
-        _;
-    }
-    
-    modifier withWhitelist() {
-        vm.prank(address(mockMultiSig));
-        mimimiCat.setWhiteList(whitelistRoot);
-        _;
-    }
-    
-    modifier withBlacklist(address addr) {
-        stdstore
-            .target(address(mimimiCat))
-            .enable_packed_slots()
-            .sig("blackList(address)")
-            .with_key(addr)
-            .checked_write(true);
-        _;
-    }
-    
-    modifier withMintPrice(uint256 price) {
-        stdstore
-            .target(address(mimimiCat))
-            .enable_packed_slots()
-            .sig("mintPrice()")
-            .checked_write(uint256(price));
-        _;
-    }
-
-    modifier withMintToken(address addr) {
-        stdstore
-            .target(address(mimimiCat))
-            .enable_packed_slots()
-            .sig("state()")
-            .checked_write(uint8(STATE_OPEN));
-        vm.startPrank(addr);
-        mimimiCat.mint{value: mimimiCat.mintPrice()}();
-        vm.stopPrank();
-        _;
-    }
+    function deployContracts() public virtual;
     
     function getProof(address addr) public view returns (bytes32[] memory) {
         uint8 index = whitelistAddresses[addr];

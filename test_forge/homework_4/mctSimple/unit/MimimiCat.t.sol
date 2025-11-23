@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {MimimiCatTestBase} from "../helpers/MimimiCatTestBase.sol";
+import {MimimiCatUnitTestBase} from "./MimimiCatUnitTestBase.sol";
 import {console} from "forge-std/Test.sol";
 
-contract InitializationTest is MimimiCatTestBase {
+contract InitializationTest is MimimiCatUnitTestBase {
     
     function test_CorrectlyConstructsNft() public view {
         assertEq(mimimiCat.owner(), owner.addr);
@@ -17,8 +17,7 @@ contract InitializationTest is MimimiCatTestBase {
     }
 }
 
-
-contract AddStakeholdersTest is MimimiCatTestBase {
+contract AddStakeholdersTest is MimimiCatUnitTestBase {
     
     function testRevert_notOwner() public {
         vm.prank(signers[10].addr);
@@ -35,7 +34,7 @@ contract AddStakeholdersTest is MimimiCatTestBase {
 }
 
 
-contract AddModeratorsTest is MimimiCatTestBase {
+contract AddModeratorsTest is MimimiCatUnitTestBase {
     
     function testRevert_notOwner() public {
         vm.prank(signers[1].addr);
@@ -53,7 +52,7 @@ contract AddModeratorsTest is MimimiCatTestBase {
 }
 
 
-contract SetMintPriceTest is MimimiCatTestBase {
+contract SetMintPriceTest is MimimiCatUnitTestBase {
     
     function testRevert_notStakeholder() public {
         vm.prank(signers[7].addr);
@@ -76,7 +75,7 @@ contract SetMintPriceTest is MimimiCatTestBase {
 }
 
 
-contract SetToBlackListTest is MimimiCatTestBase {
+contract SetToBlackListTest is MimimiCatUnitTestBase {
     
     function testRevert_notModerator() public {
         vm.prank(signers[1].addr);
@@ -105,7 +104,7 @@ contract SetToBlackListTest is MimimiCatTestBase {
 
 }
 
-contract SetWhiteListTest is MimimiCatTestBase {
+contract SetWhiteListTest is MimimiCatUnitTestBase {
     
     function testRevert_notMultisigner() public {
         vm.prank(signers[12].addr);
@@ -126,7 +125,7 @@ contract SetWhiteListTest is MimimiCatTestBase {
     
 }
 
-contract SignedCloseTest is MimimiCatTestBase {
+contract SignedCloseTest is MimimiCatUnitTestBase {
     function testRevert_invalidUri() public {
         (uint8 v, bytes32 r, bytes32 s) = sigHelper.signClose(owner.privateKey, AWESOME_URI);
         
@@ -164,7 +163,7 @@ contract SignedCloseTest is MimimiCatTestBase {
     }
 }
 
-contract CloseTest is MimimiCatTestBase {
+contract CloseTest is MimimiCatUnitTestBase {
     function testRevert_notMultisigner() public {
         vm.prank(signers[12].addr);
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", signers[12].addr));
@@ -181,7 +180,7 @@ contract CloseTest is MimimiCatTestBase {
 }
 
 
-contract SetStateTest is MimimiCatTestBase {
+contract SetStateTest is MimimiCatUnitTestBase {
     function testRevert_notModerator() public {
         vm.prank(signers[1].addr);
         vm.expectRevert(
@@ -222,7 +221,7 @@ contract SetStateTest is MimimiCatTestBase {
     }
 }
 
-contract TokenURITest is MimimiCatTestBase {
+contract TokenURITest is MimimiCatUnitTestBase {
     function testRevert_notMinted() public {
         vm.expectRevert(
             abi.encodeWithSignature("ERC721NonexistentToken(uint256)", 1)
@@ -239,7 +238,7 @@ contract TokenURITest is MimimiCatTestBase {
     }
 }
 
-contract MintTest is MimimiCatTestBase {
+contract MintTest is MimimiCatUnitTestBase {
     function testRevert_onPaused() public {
         vm.expectRevert(
             abi.encodeWithSignature("MCTMintIsNotOpened()")
@@ -276,15 +275,15 @@ contract MintTest is MimimiCatTestBase {
     }
 }
 
-contract SignedMintTest is MimimiCatTestBase {
+contract SignedMintTest is MimimiCatUnitTestBase {
     uint8 v;
     bytes32 r; 
     bytes32 s;
     Signer signer;
     Signer actor;
 
-    function setUp() public override(MimimiCatTestBase) {
-        MimimiCatTestBase.setUp();
+    function setUp() public override {
+        super.setUp();
         signer = signers[5];
         actor = signers[10];
         (v, r, s) = sigHelper.signMint(signer.privateKey, mimimiCat.nonces(signer.addr));
@@ -345,12 +344,12 @@ contract SignedMintTest is MimimiCatTestBase {
 }
 
 
-contract FreeMintTest is MimimiCatTestBase {
+contract FreeMintTest is MimimiCatUnitTestBase {
     Signer minter;
     bytes32[] minterProof;
 
-    function setUp() public override(MimimiCatTestBase) {
-        MimimiCatTestBase.setUp();
+    function setUp() public override {
+        super.setUp();
         minter = signers[32];
         vm.prank(address(mockMultiSig));
         mimimiCat.setWhiteList(whitelistRoot);
@@ -399,7 +398,7 @@ contract FreeMintTest is MimimiCatTestBase {
     }
 }
 
-contract FreeSignedMintTest is MimimiCatTestBase {
+contract FreeSignedMintTest is MimimiCatUnitTestBase {
     Signer minter;
     bytes32[] minterProof;
     uint8 v;
@@ -407,8 +406,8 @@ contract FreeSignedMintTest is MimimiCatTestBase {
     bytes32 s;
     Signer actor;
 
-    function setUp() public override(MimimiCatTestBase) {
-        MimimiCatTestBase.setUp();
+    function setUp() public override {
+        super.setUp();
         minter = signers[32];
         actor = signers[20];
         vm.prank(address(mockMultiSig));
@@ -472,15 +471,15 @@ contract FreeSignedMintTest is MimimiCatTestBase {
 
 }
 
-contract PermitTest is MimimiCatTestBase {
+contract PermitTest is MimimiCatUnitTestBase {
     uint8 v;
     bytes32 r; 
     bytes32 s;
     Signer permitter;
     Signer actor;
 
-    function setUp() public override(MimimiCatTestBase) {
-        MimimiCatTestBase.setUp();
+    function setUp() public override {
+        super.setUp();
         permitter = signers[10];
         actor = signers[20];
         (v, r, s) = sigHelper.signPermit(permitter.privateKey, actor.addr, 1, mimimiCat.nonces(permitter.addr));
@@ -501,11 +500,11 @@ contract PermitTest is MimimiCatTestBase {
     }
 }
 
-contract WithdrawTest is MimimiCatTestBase {
+contract WithdrawTest is MimimiCatUnitTestBase {
     address stakeholder;
 
-    function setUp() public override(MimimiCatTestBase) {
-        MimimiCatTestBase.setUp();
+    function setUp() public override {
+        super.setUp();
         vm.deal(address(mimimiCat), 5 ether);
         stakeholder = signers[1].addr;
         vm.prank(owner.addr);
