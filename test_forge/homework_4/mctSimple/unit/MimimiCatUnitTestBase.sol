@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {StdStorage, stdStorage} from "forge-std/StdStorage.sol";
 import {MockMultiSigWallet} from "../../helpers/MockMultiSigWallet.sol";
-import {MimimiCatTestBase} from "../MimimiCatTestBase.sol";
+import {MimimiCatTestBase} from "../../MimimiCatTestBase.sol";
 import {MimimiCat} from "../../../../contracts/homework_4/mimimiCat.sol";
 
 
@@ -14,6 +14,10 @@ contract MimimiCatUnitTestBase is MimimiCatTestBase {
     bytes32 constant ROLE_STAKEHOLDER = keccak256("ROLE_STAKEHOLDER");
     
     MockMultiSigWallet public mockMultiSig;
+
+    function _targetContract() internal view override returns (address) {
+        return address(mimimiCat);
+    }
 
     function deployContracts() public override {
         vm.startPrank(owner.addr);

@@ -4,9 +4,9 @@ pragma solidity ^0.8.28;
 import {Test,console} from "forge-std/Test.sol";
 import {StdStorage, stdStorage} from "forge-std/StdStorage.sol";
 import {Merkle} from "murky/src/Merkle.sol";
-import {MimimiCat} from "../../../contracts/homework_4/mimimiCat.sol";
-import {SignatureHelper} from "../helpers/SignatureHelper.sol";
-import {Accounts} from "../../helpers/Accounts.sol";
+import {MimimiCat} from "../../contracts/homework_4/mimimiCat.sol";
+import {SignatureHelper} from "./helpers/SignatureHelper.sol";
+import {Accounts} from "../helpers/Accounts.sol";
 
 
 abstract contract MimimiCatTestBase is Test, Accounts {
@@ -42,7 +42,7 @@ abstract contract MimimiCatTestBase is Test, Accounts {
 
         deployContracts();
         
-        sigHelper = new SignatureHelper(address(mimimiCat));
+        sigHelper = new SignatureHelper(_targetContract());
         murky = new Merkle();
         
         for (uint8 i = 0; i < 5; i++) {
@@ -53,6 +53,8 @@ abstract contract MimimiCatTestBase is Test, Accounts {
         whitelistRoot = murky.getRoot(whitelistLeaves);
         
     }
+
+    function _targetContract() internal virtual view returns (address);
 
     function deployContracts() public virtual;
     

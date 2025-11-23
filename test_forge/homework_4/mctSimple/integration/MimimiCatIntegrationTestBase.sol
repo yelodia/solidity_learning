@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {MimimiCatTestBase} from "../MimimiCatTestBase.sol";
+import {MimimiCatTestBase} from "../../MimimiCatTestBase.sol";
 import {MimimiCat} from "../../../../contracts/homework_4/mimimiCat.sol";
 import {MultiSigHelper} from "../../helpers/MultiSigHelper.sol";
 
@@ -25,6 +25,10 @@ contract MimimiCatIntegrationTestBase is MimimiCatTestBase, MultiSigHelper {
             MINT_PRICE,
             address(multiSig)
         );
+    }
+
+    function _targetContract() internal view override returns (address) {
+        return address(mimimiCat);
     }
 
     function setUp() public virtual override {
