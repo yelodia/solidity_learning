@@ -61,6 +61,8 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
     error MCTInvalidTransition();
 
     event SetState(uint8 state);
+    event Mint(address indexed to, uint256 indexed tokenId, bool freeMint);
+    event BlacklistUpdated(address indexed account, bool value);
 
     constructor(uint32 _maxSupply, uint32 _whiteListSupply, string memory _uri, uint256 _mintPrice, address signer) RoleControl(signer) Permissions("MimimiCat", "1.0.0") ERC721("MimimiCat", "MCT") payable {
         MAX_SUPPLY = _maxSupply;
@@ -111,6 +113,7 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
 
         uint256 tokenId = tokenIdCounter;
         _mint(_account, tokenId);
+        emit Mint(_account, tokenId, false);
         return tokenId;
     }
 
@@ -119,7 +122,9 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
         require(!whiteListMinted[_account], MCTAlreadyHasFreeMint(_account)); // проверка, что адрес еще не заминтил свой бесплатный токен
         
         whiteListMinted[_account] = true;
-        _mint(_account, tokenIdCounter);
+        uint256 tokenId = tokenIdCounter;
+        _mint(_account, tokenId);
+        emit Mint(_account, tokenId, true);
         unchecked {
             --whiteListSupply; // уменьшаем количество свободных мест в пуле
         }
@@ -139,6 +144,7 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
 
     function setToBlackList(address _account, bool _value) external onlyRole(ROLE_MODERATOR) { // черным списком управляют модераторы
         blackList[_account] = _value;
+        emit BlacklistUpdated(_account, _value);
     }
 
     // за установку белого списка должно проголосовать несколько владельцев через контракт мультиподписного кошелька, так как высока цена ошибки. Один владелец регистрирует вайтлист, остальные его проверяют и подтвержадют транзакцию

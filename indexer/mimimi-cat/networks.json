@@ -1,0 +1,8 @@
+{
+  "sepolia": {
+    "MimimiCat": {
+      "address": "0x0817f82aeB724b8000BA6c10496ADf25B1480f7F",
+      "startBlock": 10239746
+    }
+  }
+}
