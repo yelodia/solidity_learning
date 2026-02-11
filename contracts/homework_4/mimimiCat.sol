@@ -40,8 +40,8 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
 
     uint8 public state;
     uint32 public immutable MAX_SUPPLY; // общее количество токенов
-    uint32 private whiteListSupply; // пул свободных токенов для вайтлиста, уменьшается при бесплатном минте
-    uint32 private tokenIdCounter; // текущий заминченный токен
+    uint32 internal whiteListSupply; // пул свободных токенов для вайтлиста, уменьшается при бесплатном минте (internal для наследника MimimiCatUSD)
+    uint32 internal tokenIdCounter; // текущий заминченный токен (internal для наследника MimimiCatUSD)
     uint256 public mintPrice; // цена за минт
     string private baseURI;
     // белый список - это корень меркл дерева. Если у нас в коллекции предполагается 5000 токенов, и 500 из них для вайтлиста, то очень накладно формировать мапу из 500 адресов. Таким образом вайтлист устанавливается целиком за одну транзакцию
@@ -85,15 +85,14 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
         return baseURI; 
     }
 
-    function mint() external payable {
-        _mintMCT(msg.sender);
+    function mint() external virtual payable returns (uint256) {
+        return _mintMCT(msg.sender);
     }
 
     // мета транзакция для минта
-    function signedMint(address _owner, uint8 v, bytes32 r, bytes32 s) external payable {
+    function signedMint(address _owner, uint8 v, bytes32 r, bytes32 s) external virtual payable returns (uint256) {
         _validateMint(_owner, v, r, s); // проверка подписи
-        _mintMCT(_owner);
-
+        return _mintMCT(_owner);
     }
 
     function freeMint(bytes32[] calldata _proof) external {
@@ -106,11 +105,13 @@ contract MimimiCat is RoleControl, Permissions, ERC721 {
         _freeMintMCT(_owner, _proof);
     }
 
-    function _mintMCT(address _account) internal mintEnabled(MAX_SUPPLY - whiteListSupply) {
+    function _mintMCT(address _account) internal virtual mintEnabled(MAX_SUPPLY - whiteListSupply) returns (uint256) {
         require(!blackList[_account], MCTAdddresInBlackList(_account)); // проверяем, что адрес не в черном списке
         require(msg.value == mintPrice, MCTInvalidEthers(_account, mintPrice, msg.value)); // плата за минт должна соответствовать той, что установлена в контракте
 
-        _mint(_account, tokenIdCounter);
+        uint256 tokenId = tokenIdCounter;
+        _mint(_account, tokenId);
+        return tokenId;
     }
 
     function _freeMintMCT(address _account, bytes32[] calldata _proof) internal mintEnabled(MAX_SUPPLY) {
