@@ -16,6 +16,14 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract FlashMintSell is FlashLoanSimpleReceiverBase {
     address public immutable weth;
 
+    struct FlashParams {
+        address beneficiary;
+        address nftContract;
+        address buyer;
+        bytes mintCalldata;
+        bytes4 buySelector;
+    }
+
     error InsufficientProceeds();
     error MintFailed();
     error MintReturnInvalid();
@@ -55,20 +63,34 @@ contract FlashMintSell is FlashLoanSimpleReceiverBase {
         bytes calldata params
     ) external override returns (bool) {
         require(initiator == address(this), "FlashMintSell: only self");
-        (address beneficiary, address _nftContract, address _buyer, bytes memory mintCalldata, bytes4 buySelector) =
-            abi.decode(params, (address, address, address, bytes, bytes4));
+        FlashParams memory p = _decodeParams(params);
 
         IWETH(asset).withdraw(amount);
-        (bool ok, bytes memory mintResult) = _nftContract.call{ value: amount }(mintCalldata);
+        _doMintAndBuy(p.nftContract, p.buyer, p.mintCalldata, p.buySelector, amount);
+        _repayAndSendProfit(p.beneficiary, asset, amount, premium);
+        return true;
+    }
+
+    function _decodeParams(bytes calldata params) internal pure returns (FlashParams memory p) {
+        (p.beneficiary, p.nftContract, p.buyer, p.mintCalldata, p.buySelector) =
+            abi.decode(params, (address, address, address, bytes, bytes4));
+    }
+
+    function _doMintAndBuy(
+        address nftContract,
+        address buyer,
+        bytes memory mintCalldata,
+        bytes4 buySelector,
+        uint256 mintValue
+    ) internal returns (uint256 tokenId) {
+        (bool ok, bytes memory mintResult) = nftContract.call{ value: mintValue }(mintCalldata);
         if (!ok) revert MintFailed();
         if (mintResult.length < 32) revert MintReturnInvalid();
-        uint256 tokenId = abi.decode(mintResult, (uint256));
+        tokenId = abi.decode(mintResult, (uint256));
 
-        IERC721(_nftContract).approve(_buyer, tokenId);
-        (bool buyOk,) = _buyer.call(abi.encodeWithSelector(buySelector, _nftContract, tokenId));
+        IERC721(nftContract).approve(buyer, tokenId);
+        (bool buyOk,) = buyer.call(abi.encodeWithSelector(buySelector, nftContract, tokenId));
         if (!buyOk) revert BuyFailed();
-        _repayAndSendProfit(beneficiary, asset, amount, premium);
-        return true;
     }
 
     function _repayAndSendProfit(address beneficiary, address asset, uint256 amount, uint256 premium) internal {

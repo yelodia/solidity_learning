@@ -1,0 +1,14 @@
+{
+  "name": "interactive",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "mint": "node mint.js",
+    "read": "node read-contract.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "viem": "^2.43.5"
+  }
+}
