@@ -1,0 +1,14 @@
+{
+  "name": "bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "relayer": "node index.js",
+    "lock": "node lock.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "viem": "^2.43.5"
+  }
+}

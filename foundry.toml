@@ -31,6 +31,8 @@ exclude_lints = [
 
 [rpc_endpoints]
 sepolia = "https://sepolia.infura.io/v3/${INFURA_API_KEY_SEPOLIA}"
+polygon_amoy = "https://polygon-amoy.infura.io/v3/${INFURA_API_KEY_SEPOLIA}"
+bsc_testnet = "https://bsc-testnet.infura.io/v3/${INFURA_API_KEY_SEPOLIA}"
 
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
