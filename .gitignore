@@ -4,6 +4,8 @@ typechain
 *.DS_Store
 .idea
 .vscode
+.venv
+.venv_mythril
 
 # Hardhat files
 cache
