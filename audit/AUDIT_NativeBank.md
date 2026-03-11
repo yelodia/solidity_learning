@@ -57,11 +57,11 @@ slither contracts/homework_3/NativeBank.sol --compile-force-framework foundry
 
 ### 3.2 Mythril
 
-Mythril запускался в отдельном виртуальном окружении (`.venv_mythril`), см. `docs/MYTHRIL_README.md`.
+Mythril запускался в отдельном виртуальном окружении (`.venv_mythril`), см. `MYTHRIL_README.md`.
 
 **Команда запуска (по bytecode):**
 ```bash
-myth analyze -f docs/nativebank_bytecode.txt --bin-runtime --execution-timeout 120
+myth analyze -f audit/nativebank_bytecode.txt --bin-runtime --execution-timeout 120
 ```
 
 **Результаты прогона:** Mythril успешно выполнил символьный анализ runtime-bytecode контракта. Обнаружено **5 предупреждений** одного типа:
@@ -74,7 +74,7 @@ myth analyze -f docs/nativebank_bytecode.txt --bin-runtime --execution-timeout 1
 
 Реентрантность и неконтролируемая отправка ETH в данном прогоне Mythril не были помечены; ручная проверка этих векторов приведена в разделе 4.
 
-**Полный вывод Mythril:** [docs/mythril_nativeBank.txt](docs/mythril_nativeBank.txt)
+**Полный вывод Mythril:** [mythril_nativeBank.txt](mythril_nativeBank.txt)
 
 ---
 
@@ -206,4 +206,4 @@ NativeBank.owner ... should be immutable
 INFO:Slither: ... NativeBank.sol analyzed (2 contracts with 101 detectors), 11 result(s) found
 ```
 
-**Mythril:** Результаты и интерпретация — в разделе 3.2. Полный вывод: [docs/mythril_nativeBank.txt](docs/mythril_nativeBank.txt).
+**Mythril:** Результаты и интерпретация — в разделе 3.2. Полный вывод: [mythril_nativeBank.txt](mythril_nativeBank.txt).
